@@ -23,27 +23,32 @@ for c in cards:
            f"**动作**　{c['action']}", "",
            f"`{'` `'.join(c['tags']['identity'])}`　`{'` `'.join(c['tags']['target'])}`　`{'` `'.join(c['tags']['hinge'])}`　`{c['tags']['newrule']}`", "",
            f"<sub>{c['source_mix']}</sub>", "", "---", ""]
-(BASE / f"cards-{src.stem}.md").write_text("\n".join(md), "utf-8")
+(BASE / f"{src.stem}.md").write_text("\n".join(md), "utf-8")
 
 # ---------- html ----------
 def esc(s): return html.escape(str(s))
 
+def card_vals(c, key):
+    if key == "vol":
+        return [c.get("volume", "")]
+    raw = c["tags"][key]
+    return raw if isinstance(raw, list) else [raw]
+
 tag_groups = []
 for label, key, _ in [
+    ("卷次", "vol", None),
     ("身份", "identity", None),
-    ("可诉对象", "target", None),
+    ("相对方", "target", None),
     ("胜负手", "hinge", None),
     ("新规", "newrule", None),
 ]:
     seen = []
-    for v in meta["tags"][key]:
+    for v in meta["tags"].get(key, []):
         if v not in seen:
             seen.append(v)
     for c in cards:
-        raw = c["tags"][key]
-        vals = raw if isinstance(raw, list) else [raw]
-        for v in vals:
-            if v not in seen:
+        for v in card_vals(c, key):
+            if v and v not in seen:
                 seen.append(v)
     tag_groups.append((label, key, seen))
 
@@ -52,6 +57,11 @@ for label, key, vals in tag_groups:
     btns = "".join(f'<button class="chip" data-key="{key}" data-val="{esc(v)}">{esc(v)}</button>' for v in vals)
     filters.append(f'<div class="fgroup"><span class="flabel">{label}</span>{btns}</div>')
 
+if not meta.get("subtitle"):
+    CN = "一二三四五"
+    vols = meta.get("volumes") or [{"vol": meta.get("vol", 1), "title": meta.get("vol_title",""), "range": meta.get("range","")}]
+    parts = [f"卷{CN[v['vol']-1]} {v['title']}" for v in vols]
+    meta["subtitle"] = "｜".join(parts)
 js_cards = json.dumps(cards, ensure_ascii=False)
 
 tpl = f"""<!doctype html>
@@ -92,6 +102,7 @@ input[type=search]:focus{{border-color:var(--navy)}}
  box-shadow:0 1px 0 rgba(22,35,58,.03)}}
 .chead{{display:flex;align-items:baseline;gap:14px;margin-bottom:4px}}
 .no{{font-family:"Songti SC",serif;font-size:13px;color:var(--red);letter-spacing:.1em;min-width:34px}}
+.vtag{{font-size:11px;color:var(--sub);border:1px solid var(--line);border-radius:3px;padding:1px 6px;margin-left:auto;white-space:nowrap}}
 .card h2{{font-family:"Songti SC","Noto Serif CJK SC",serif;font-size:21px;font-weight:600;margin:0;line-height:1.5}}
 .q{{color:var(--sub);font-size:14px;margin:6px 0 16px;padding-left:48px}}
 .row{{display:flex;gap:12px;margin:10px 0}}
@@ -125,7 +136,7 @@ footer{{max-width:1080px;margin:0 auto;padding:32px 24px 60px;border-top:1px sol
 <header>
   <div class="kicker">{esc(meta.get('kicker','规 则 卡'))}</div>
   <h1>{esc(meta['book'])}</h1>
-  <div class="sub">{esc(meta['vol_title'])}｜第 {esc(meta['range'])} 讲｜共 {meta['count']} 张</div>
+  <div class="sub">{esc(meta.get('subtitle') or meta.get('vol_title',''))}｜共 {meta['count']} 张</div>
   <div class="rule"></div>
 </header>
 <div class="wrap">
@@ -150,14 +161,14 @@ const on = {{}};
 const list = document.getElementById('list');
 const q = document.getElementById('q');
 const cnt = document.getElementById('count');
-function tagsOf(c){{return [...c.tags.identity, ...c.tags.target, ...c.tags.hinge, c.tags.newrule];}}
+function tagsOf(c){{return [c.volume, ...c.tags.identity, ...c.tags.target, ...c.tags.hinge, c.tags.newrule];}}
 function render(){{
   const kw = q.value.trim().toLowerCase();
   const active = Object.entries(on).filter(([,v])=>v.size).map(([k,v])=>[k,[...v]]);
   const rows = DATA.filter(c=>{{
     if(active.length){{
       for(const [k,vals] of active){{
-        const own = k==='hinge'? c.tags.hinge : (k==='newrule'? [c.tags.newrule] : c.tags[k]);
+        const own = k==='vol'? [c.volume] : (k==='hinge'? c.tags.hinge : (k==='newrule'? [c.tags.newrule] : c.tags[k]));
         if(!vals.some(v=>own.includes(v))) return false;
       }}
     }}
@@ -169,7 +180,7 @@ function render(){{
   if(!rows.length){{list.innerHTML='<div class="empty">没有匹配的卡片。换个关键词，或清掉筛选。</div>';return;}}
   list.innerHTML = rows.map(c=>`
     <article class="card">
-      <div class="chead"><span class="no">${{c.no}}</span><h2>${{c.title}}</h2></div>
+      <div class="chead"><span class="no">${{c.no}}</span><h2>${{c.title}}</h2><span class="vtag">${{c.volume}}</span></div>
       <div class="q">${{c.question}}</div>
       <div class="row"><div class="k">规则</div><div class="v">${{c.rule}}</div></div>
       <div class="row"><div class="k">判例</div><div class="v cite">${{c.case_main.name}}<br>${{c.case_main.court}} · ${{c.case_main.no}}</div></div>
