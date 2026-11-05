@@ -48,7 +48,8 @@
     "kicker": "建工裁判规则 · 规则卡",
     "desc": "《尺度》建工裁判规则 100 讲配套规则卡：每条一个争点、一条规则、可核验的判例坐标与翻转条件。卷一 001-020。",
     "license": "CC BY-NC-SA 4.0",
-    "repo": "https://github.com/binbin2896/chidu-rules"
+    "repo": "https://github.com/binbin2896/chidu-rules",
+    "url": "https://binbin2896.github.io/chidu-rules/"
   },
   "cards": [
     {

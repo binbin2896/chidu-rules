@@ -1,0 +1,4 @@
+User-agent: *
+Allow: /
+
+Sitemap: https://binbin2896.github.io/chidu-rules/sitemap.xml

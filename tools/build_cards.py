@@ -62,6 +62,8 @@ tpl = f"""<!doctype html>
 <meta property="og:title" content="{esc(meta['book'])} · 规则卡">
 <meta property="og:description" content="{esc(meta.get('desc',''))}">
 <meta property="og:type" content="website">
+<meta property="og:url" content="{esc(meta.get('url',''))}">
+<link rel="canonical" href="{esc(meta.get('url',''))}">
 <style>
 :root{{--paper:#FAF8F3;--ink:#1C2331;--sub:#6B6A66;--red:#B23A2E;--line:#E2DDD2;--navy:#16233A}}
 *{{box-sizing:border-box}}
