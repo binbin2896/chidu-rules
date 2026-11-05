@@ -52,9 +52,16 @@ for label, key, _ in [
                 seen.append(v)
     tag_groups.append((label, key, seen))
 
+MAXCHIP = 10
 filters = []
 for label, key, vals in tag_groups:
-    btns = "".join(f'<button class="chip" data-key="{key}" data-val="{esc(v)}">{esc(v)}</button>' for v in vals)
+    def chip(v):
+        return f'<button class="chip" data-key="{key}" data-val="{esc(v)}">{esc(v)}</button>'
+    head, tail = vals[:MAXCHIP], vals[MAXCHIP:]
+    btns = "".join(chip(v) for v in head)
+    if tail:
+        btns += '<span class="rest" hidden>' + "".join(chip(v) for v in tail) + '</span>'
+        btns += f'<button class="chip more" type="button">＋{len(tail)}</button>'
     filters.append(f'<div class="fgroup"><span class="flabel">{label}</span>{btns}</div>')
 
 if not meta.get("subtitle"):
@@ -97,6 +104,7 @@ input[type=search]:focus{{border-color:var(--navy)}}
  background:#fff;color:var(--sub);cursor:pointer;transition:.15s}}
 .chip:hover{{border-color:var(--navy);color:var(--navy)}}
 .chip.on{{background:var(--navy);border-color:var(--navy);color:#fff}}
+.chip.more{{color:var(--red);border-style:dashed}}
 #count{{font-size:12px;color:var(--sub);margin:16px 0 6px;letter-spacing:.06em}}
 .card{{background:#fff;border:1px solid var(--line);border-radius:8px;padding:26px 28px;margin:16px 0;
  box-shadow:0 1px 0 rgba(22,35,58,.03)}}
@@ -196,12 +204,23 @@ function render(){{
       <div class="src">${{c.source_mix}}</div>
     </article>`).join('');
 }}
-document.querySelectorAll('.chip').forEach(b=>b.addEventListener('click',()=>{{
-  const k=b.dataset.key,v=b.dataset.val;
-  on[k]=on[k]||new Set();
-  if(on[k].has(v)){{on[k].delete(v);b.classList.remove('on');}}else{{on[k].add(v);b.classList.add('on');}}
+document.addEventListener('click', e=>{{
+  const chip = e.target.closest('.chip');
+  if(!chip) return;
+  if(chip.classList.contains('more')){{
+    const box = chip.closest('.fgroup');
+    const rest = box.querySelector('.rest');
+    if(rest) rest.hidden = false;
+    chip.remove();
+    return;
+  }}
+  const k = chip.dataset.key, v = chip.dataset.val;
+  if(!k || v === undefined) return;
+  on[k] = on[k] || new Set();
+  if(on[k].has(v)){{ on[k].delete(v); chip.classList.remove('on'); }}
+  else {{ on[k].add(v); chip.classList.add('on'); }}
   render();
-}}));
+}});
 q.addEventListener('input',render);
 addEventListener('scroll',()=>document.getElementById('sb').classList.toggle('stuck',scrollY>40));
 if(matchMedia('(max-width:640px)').matches) document.getElementById('fb').open=false;
